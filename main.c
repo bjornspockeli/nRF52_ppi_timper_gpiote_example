@@ -50,14 +50,39 @@
 #include "nordic_common.h"
 #include "boards.h"
 
-// Header file that needs to be included for PPI/GPIOTE/TIMER example.
+// Header file that needs to be included for PPI/GPIOTE/TIMER/TWI example.
 #include "nrf_drv_ppi.h"
 #include "nrf_drv_timer.h"
 #include "nrf_drv_gpiote.h"
+#include "nrf_drv_twi.h"
+
+// Headers and defines needed by the logging interface
+#define NRF_LOG_MODULE_NAME "APP"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
 
 // Map LED pins on the nRF52 DK. 
 #define LED1 17
 #define LED2 20
+#define LED3 19
+
+/* TWI instance ID. */
+#define TWI_INSTANCE_ID     0
+
+/* Common addresses definition for temperature sensor. */
+#define LM75B_ADDR          (0x90U >> 1)
+#define LM75B_REG_TEMP      0x00U
+#define LM75B_REG_CONF      0x01U
+
+/* TWI instance. */
+static const nrf_drv_twi_t m_twi = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
+
+/* Indicates if operation on TWI has ended. */
+static volatile bool m_xfer_done = false;
+
+/* Buffer for samples read from temperature sensor. */
+static uint8_t m_sample;
+
 
 // Timer instance
 const nrf_drv_timer_t timer0 = NRF_DRV_TIMER_INSTANCE(0);
@@ -65,8 +90,25 @@ const nrf_drv_timer_t timer0 = NRF_DRV_TIMER_INSTANCE(0);
 // PPI channel
 nrf_ppi_channel_t ppi_channel;
 
-// Dummy timer event handler that will not be used.
-void timer_dummy_handler(nrf_timer_event_t event_type, void * p_context){}
+// Forward decleration LM75B_read_temp_data
+static void LM75B_read_temp_data(void);
+
+
+// Dummy timer event handler that will be used for step 2 and 4, but not step 3.
+void timer_event_handler(nrf_timer_event_t event_type, void * p_context)
+{
+    switch(event_type)
+    {
+        case NRF_TIMER_EVENT_COMPARE0:
+            nrf_drv_gpiote_out_task_trigger(LED3);
+            LM75B_read_temp_data();
+            break;
+        default:
+            // Do nothing.
+            break;
+    }
+    
+}
 
 /** @brief Function for initializing the Timer peripheral.
 */
@@ -78,12 +120,12 @@ static void timer_init(void) {
     nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
     
     //Initializing the Timer driver
-    err_code = nrf_drv_timer_init(&timer0, &timer_cfg, timer_dummy_handler);
+    err_code = nrf_drv_timer_init(&timer0, &timer_cfg, timer_event_handler);
     APP_ERROR_CHECK(err_code);
     
     /*Configure the timer to generate the COMPARE event after 200*1000UL ticks and enable the shortcut that triggers the CLEAR task on every COMPARE event.
         This will */
-    nrf_drv_timer_extended_compare(&timer0, (nrf_timer_cc_channel_t)0, 200 * 1000UL, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, false);
+    nrf_drv_timer_extended_compare(&timer0, NRF_TIMER_CC_CHANNEL0, nrf_drv_timer_ms_to_ticks(&timer0, 500), NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true); // Set last argument to false for Task 3
     
     // Turning on the Timer. 
     nrf_drv_timer_enable(&timer0);
@@ -101,7 +143,7 @@ static void gpiote_init(void) {
     APP_ERROR_CHECK(err_code);
 
     // Configure the GPIO pin so that its toggled every time the OUT task is triggerd
-    nrf_drv_gpiote_out_config_t config = GPIOTE_CONFIG_OUT_TASK_TOGGLE(false);
+    nrf_drv_gpiote_out_config_t config = GPIOTE_CONFIG_OUT_TASK_TOGGLE(false); 
     
     // Apply the configuration above to the LED_1 GPIO pin.  
     err_code = nrf_drv_gpiote_out_init(LED1, &config);
@@ -110,12 +152,19 @@ static void gpiote_init(void) {
     // Apply the configuration above to the LED_2 GPIO pin.  
     err_code = nrf_drv_gpiote_out_init(LED2, &config);
     APP_ERROR_CHECK(err_code);
+    
+       // Apply the configuration above to the LED_2 GPIO pin.  
+    err_code = nrf_drv_gpiote_out_init(LED3, &config);
+    APP_ERROR_CHECK(err_code);
    
     // Enabling the OUT task for the LED_1 GPIO pin.
     nrf_drv_gpiote_out_task_enable(LED1);
     
     // Enabling the OUT task for the LED_2 GPIO pin.
     nrf_drv_gpiote_out_task_enable(LED2);
+    
+    // Enabling the OUT task for the LED_3 GPIO pin.
+    nrf_drv_gpiote_out_task_enable(LED3);
 }
 
 /** @brief Function for initializing the PPI peripheral.
@@ -146,8 +195,83 @@ static void ppi_init(void)
     // Enable the PPI channel 
     err_code = nrf_drv_ppi_channel_enable(ppi_channel);
     APP_ERROR_CHECK(err_code);
-    
+   
 }   
+
+/**
+ * @brief TWI events handler.
+ */
+void twi_handler(nrf_drv_twi_evt_t const * p_event, void * p_context)
+{
+    switch (p_event->type)
+    {
+        case NRF_DRV_TWI_EVT_DONE:
+            if (p_event->xfer_desc.type == NRF_DRV_TWI_XFER_RX)
+            {
+                NRF_LOG_INFO("Temperature: %d Celsius degrees.\r\n", m_sample);
+            }
+            m_xfer_done = true;
+            break;
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief TWI initialization.
+ */
+void twi_init (void)
+{
+    ret_code_t err_code;
+
+    const nrf_drv_twi_config_t twi_lm75b_config = {
+       .scl                = ARDUINO_SCL_PIN, //27
+       .sda                = ARDUINO_SDA_PIN, //
+       .frequency          = NRF_TWI_FREQ_100K,
+       .interrupt_priority = TWI_DEFAULT_CONFIG_IRQ_PRIORITY,
+       .clear_bus_init     = false
+    };
+
+    err_code = nrf_drv_twi_init(&m_twi, &twi_lm75b_config, twi_handler, NULL);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_twi_enable(&m_twi);
+}
+
+/**
+ * @brief Function for setting the LM75B temperature sensor in Normal mode.
+ */
+void LM75B_set_mode(void)
+{
+    ret_code_t err_code;
+
+    /* Writing to LM75B_REG_CONF "0" set temperature sensor in NORMAL mode. */
+    uint8_t reg[2] = {LM75B_REG_CONF, 0U};
+    err_code = nrf_drv_twi_tx(&m_twi, LM75B_ADDR, reg, sizeof(reg), false);
+    APP_ERROR_CHECK(err_code);
+    while (m_xfer_done == false);
+}
+
+/**
+ * @brief Function for reading data from temperature sensor.
+ */
+static void LM75B_read_temp_data()
+{
+    ret_code_t err_code;
+    
+    // Writing to pointer byte. 
+    uint8_t reg = LM75B_REG_TEMP;
+    m_xfer_done = false;
+    err_code = nrf_drv_twi_tx(&m_twi, LM75B_ADDR, &reg, 1, false);
+    APP_ERROR_CHECK(err_code);
+    while (m_xfer_done == false);
+    
+    m_xfer_done = false;
+
+    /* Read 1 byte from the specified address - skip 3 bits dedicated for fractional part of temperature. */
+    err_code = nrf_drv_twi_rx(&m_twi, LM75B_ADDR, &m_sample, sizeof(m_sample));
+    APP_ERROR_CHECK(err_code);
+}
 
 static void power_manage()
 { 
@@ -176,13 +300,23 @@ static void power_manage()
  */
 int main(void)
 { 
+    ret_code_t err_code;
+    
+    err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
+    
+    NRF_LOG_INFO("GPIOTE/TIMER/PPI/TWI Handson \r\n");
+    
     // The GPIOTE peripheral must be initialized first, so that the correct Task Endpoint addresses are returned by nrf_drv_gpiote_xxx_task_addr_get()
     gpiote_init();
     ppi_init();
     timer_init();
-    
+    twi_init();
+    LM75B_set_mode();
+
     while (true)
     {
+        
         power_manage();
         // Do nothing.
     }

@@ -175,4 +175,6 @@ http://infocenter.nordicsemi.com/topic/com.nordic.infocenter.sdk5.v13.0.0/hardwa
 
 7. Correct the code, compile the project, download it to the nRF52 DK and start J-Link RTT viewer as described in Step 4 - Adding the log module. You should now see the temperature being printed in the RTT terminal. 
 
-
+Temperature printed in J-Link RTT Viewer | 
+------------ |
+<img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/segger_print_temp.JPG" width="500"> |

@@ -29,7 +29,7 @@ The template project includes all the peripheral libraries and drivers from the 
 
 Remove files from Target Build | Uncheck modules in skd_config.h  | 
 ------------ |------------ |
-<img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/warmup_uninclude_files.JPG" width="300"> | <img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/skd_config_uncheck.JPG" width="300"> |
+<img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/warmup_uninclude_files.JPG" width="400"> | <img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/skd_config_uncheck.JPG" width="400"> |
 
 ### 1. GPIOTE - GPIO Tasks and Events
 
@@ -140,7 +140,7 @@ The Logging module API (nrf_log.c) is documented [here](http://infocenter.nordic
 
 5. Open J-Link RTT Viewer, use the configuration shown below and press *OK*. The string passed with the *NRF_LOG_INFO()* macro should show up in the RTT terminal.   
 
-Service, Characteristic and Descriptor  | 
+J-Link RTT Viewer Configuration  | 
 ------------ |
 <img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/rtt_viewer_config.JPG" width="250"> |
 

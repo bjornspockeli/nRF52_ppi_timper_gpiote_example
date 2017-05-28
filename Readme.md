@@ -27,6 +27,10 @@ The template project includes all the peripheral libraries and drivers from the 
 
 5. Open the *sdk_config.h* file in the *None* folder in the Keil Project Explorer and click the *Configuration Wizard* tab. Uncheck all *nRF_Drivers*, *nRF_Libraries* and *nRF_Log*.
 
+Remove files from Target Build | Uncheck modules in skd_config.h  | 
+------------ |------------ |
+<img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/warmup_uninclude_files.JPG" width="300"> | <img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/skd_config_uncheck.JPG" width="300"> |
+
 ### 1. GPIOTE - GPIO Tasks and Events
 
 **Module description:** The GPIO tasks and events (GPIOTE) module provides functionality for accessing GPIO pins using tasks
@@ -135,6 +139,10 @@ The Logging module API (nrf_log.c) is documented [here](http://infocenter.nordic
 4. Add *NRF_LOG_INFO("GPIOTE/TIMER/PPI/TWI Handson \r\n");* after calling *NRF_LOG_INIT()*, compile the project and flash the project to your nRF52 DK. 
 
 5. Open J-Link RTT Viewer, use the configuration shown below and press *OK*. The string passed with the *NRF_LOG_INFO()* macro should show up in the RTT terminal.   
+
+Service, Characteristic and Descriptor  | 
+------------ |
+<img src="https://github.com/bjornspockeli/nRF52_ppi_timper_gpiote_example/blob/master/images/rtt_viewer_config.JPG" width="250"> |
 
 ### 5. TWI - Two-Wire Interface
 

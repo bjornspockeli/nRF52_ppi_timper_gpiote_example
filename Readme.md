@@ -8,6 +8,7 @@ Short tutorial that shows how to configure a Timer to toogle a GPIO pin, in soft
 ### Requirements
 - nRF5x DK
 - SDK v13.0.0
+- Template Project found in nRF5_SDK_13.0.0_04a0bfd\examples\peripheral\template_project
 
 ## Tasks
 

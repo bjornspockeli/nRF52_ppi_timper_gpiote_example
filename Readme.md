@@ -131,9 +131,9 @@ The Logging module API (nrf_log.c) is documented [here](http://infocenter.nordic
 
 #### Steps
 
-1. Initialize the logging module by calling *NRF_LOG_INIT(NULL)* in *main()*;
+1. Include *nrf_log_ctrl.h* and *nrf_log.h*  Initialize the logging module by calling *NRF_LOG_INIT(NULL)* in *main()*;
 
-2. Include the .c files in the *nRF_Log* and *nRF_Segger_RTT* in the Keil Project explorer as well as *app_util_platform.c*. You also need to add *#define NRF_LOG_MODULE_NAME "APP"* to the top of *main()*
+2. Include the .c files in the *nRF_Log* and *nRF_Segger_RTT* in the Keil Project explorer. You also need to add *#define NRF_LOG_MODULE_NAME "APP"* to the top of *main()*, but it must be defined before the *nrf_log_ctrl.h* and *nrf_log.h* include-statements.
 
 3. Open *sdk_config.h* in the *Configuration Wizard* view and check *NRF_LOG_ENABLED*, expand to display the logging settings and uncheck *NRF_LOG_DEFFERED*. Under *nrf_log_backend* uncheck *NRF_LOG_BACKEND_SERIAL_USES_UART* and check *NRF_LOG_BACKEND_SERIAL_USES_RTT*. 
 

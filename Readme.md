@@ -12,7 +12,7 @@ Short tutorial that shows how to configure a Timer to toogle a GPIO pin, in soft
 
 ## Tasks
 
-In all the tasks we'll be using the SDK driver for the peripherals, i.e. nrf_drv_xxx.c, . However, it is possible to use the peripherals at the register level or 
+In all the tasks we'll be using the SDK driver for the peripherals, i.e. nrf_drv_xxx.c, which can be found in nRF5_SDK_13.0.0_04a0bfd\components\drivers_nrf\. It is possible to use the peripherals at the register level using the Hardware Access Layer(HAL) for said peripheral, found in nRF5_SDK_13.0.0_04a0bfd\components\drivers_nrf\hal. THis will, however, not be covered in this tutorial. 
 
 ### Warm-up
 
